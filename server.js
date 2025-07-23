@@ -16,6 +16,7 @@ app.post("/usuarios", async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             age: req.body.age,
+            telefone: req.body.telefone,
         }
     })
 
@@ -36,6 +37,8 @@ app.get("/usuarios", async (req, res) => {
                     req.query.email,
 
                 age: req.query.age, // Filtra por idade maior ou igual a idade fornecida
+
+                telefone: req.query.telefone, // Filtra por telefone
 
             }
         });
@@ -59,6 +62,7 @@ app.put("/usuarios/:id", async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             age: req.body.age,
+            telefone: req.body.telefone,
         }
     })
     res.status(200).json(user)
