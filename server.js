@@ -54,24 +54,32 @@ app.get("/usuarios", async (req, res) => {
 }) //app.post("/usuarios",) app.put("/usuarios",) app.delete("/usuarios",)
 
 app.put("/usuarios/:id", async (req, res) => {
-    // Validação para garantir que o corpo da requisição não está vazio
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Corpo da requisição ausente ou vazio." });
-    }
-
     try {
+        const { name, email, dataNascimento, telefone } = req.body;
+
+        // Cria um objeto 'data' apenas com os campos que foram fornecidos
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+        if (telefone) updateData.telefone = telefone;
+
+        // Trata a data de nascimento apenas se ela for enviada
+        if (dataNascimento) {
+            updateData.dataNascimento = new Date(dataNascimento);
+        }
+
+        // Impede a atualização se nenhum dado for enviado
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: "Nenhum dado fornecido para atualização." });
+        }
+
         const user = await prisma.user.update({
             where: { id: req.params.id },
-            data: {
-                name: req.body.name,
-                email: req.body.email,
-                dataNascimento: req.body.dataNascimento ? new Date(req.body.dataNascimento) : undefined,
-                telefone: req.body.telefone,
-            }
+            data: updateData, // Usa o objeto com os dados filtrados
         });
+
         res.status(200).json(user);
     } catch (error) {
-        // Erro pode ser "usuário não encontrado" ou dados inválidos
         console.error("Erro ao atualizar usuário:", error);
         res.status(404).json({ message: "Não foi possível atualizar o usuário." });
     }
