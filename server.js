@@ -1,83 +1,76 @@
 import express from "express";
-import { PrismaClient } from '@prisma/client';
 import cors from "cors";
+import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient()
-
+const prisma = new PrismaClient();
 const app = express();
-app.use(express.json()); // Middleware para interpretar JSON
-app.use(cors()); // Middleware para permitir CORS
 
+app.use(express.json());
+app.use(cors());
 
+// ROTA POST (Criar Usuário)
 app.post("/usuarios", async (req, res) => {
-
-    await prisma.user.create({
-        data: {
-            name: req.body.name,
-            email: req.body.email,
-            dataNascimento: new Date(req.body.dataNascimento),
-            telefone: req.body.telefone,
-        }
-    })
-
-    res.status(201).json(req.body);
-})
-
-app.get("/usuarios", async (req, res) => {
-
-    let users = [];
-
-    if (req.query) {
-        users = await prisma.user.findMany({
-            where: {
-                name:
-                    req.query.name,
-
-                email:
-                    req.query.email,
-
-                dataNascimento: new Date(req.body.dataNascimento),
-
-                telefone: req.query.telefone, // Filtra por telefone
-
-            }
+    try {
+        const user = await prisma.user.create({
+            data: {
+                name: req.body.name,
+                email: req.body.email,
+                dataNascimento: req.body.dataNascimento ? new Date(req.body.dataNascimento) : null,
+                telefone: req.body.telefone,
+            },
         });
-
-    } else {
-        users = await prisma.user.findMany();
+        res.status(201).json(user);
+    } catch (error) {
+        console.error("Erro ao criar usuário:", error);
+        res.status(500).json({ message: "Ocorreu um erro ao criar o usuário." });
     }
+});
 
+// ROTA GET (Listar Usuários com Filtros) - VERSÃO CORRIGIDA
+app.get("/usuarios", async (req, res) => {
+    try {
+        const { name, email, dataNascimento } = req.query; // <-- CORREÇÃO: Usando req.query
+        const where = {};
 
+        if (name) {
+            where.name = { contains: name, mode: 'insensitive' };
+        }
+        if (email) {
+            where.email = { contains: email, mode: 'insensitive' };
+        }
+        // Filtro por data de nascimento (se fornecido)
+        if (dataNascimento) {
+            // CORREÇÃO: Usando req.query e convertendo para data
+            where.dataNascimento = new Date(dataNascimento);
+        }
 
-    res.status(200).json(users);
+        const users = await prisma.user.findMany({ where });
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Erro ao listar usuários:", error);
+        res.status(500).json({ message: "Ocorreu um erro ao listar os usuários." });
+    }
+});
 
-}) //app.post("/usuarios",) app.put("/usuarios",) app.delete("/usuarios",)
-
+// ROTA PUT (Atualizar Usuário)
 app.put("/usuarios/:id", async (req, res) => {
     try {
         const { name, email, dataNascimento, telefone } = req.body;
-
-        // Cria um objeto 'data' apenas com os campos que foram fornecidos
         const updateData = {};
+
         if (name) updateData.name = name;
         if (email) updateData.email = email;
         if (telefone) updateData.telefone = telefone;
+        if (dataNascimento) updateData.dataNascimento = new Date(dataNascimento);
 
-        // Trata a data de nascimento apenas se ela for enviada
-        if (dataNascimento) {
-            updateData.dataNascimento = new Date(dataNascimento);
-        }
-
-        // Impede a atualização se nenhum dado for enviado
         if (Object.keys(updateData).length === 0) {
             return res.status(400).json({ message: "Nenhum dado fornecido para atualização." });
         }
 
         const user = await prisma.user.update({
             where: { id: req.params.id },
-            data: updateData, // Usa o objeto com os dados filtrados
+            data: updateData,
         });
-
         res.status(200).json(user);
     } catch (error) {
         console.error("Erro ao atualizar usuário:", error);
@@ -85,21 +78,19 @@ app.put("/usuarios/:id", async (req, res) => {
     }
 });
 
+// ROTA DELETE (Deletar Usuário)
 app.delete("/usuarios/:id", async (req, res) => {
-    await prisma.user.delete({
-        where: {
-            id: req.params.id,
-        },
-    })
-    res.status(200).json({ message: "Usuário deletado com sucesso!" });
-})
+    try {
+        await prisma.user.delete({
+            where: { id: req.params.id },
+        });
+        res.status(200).json({ message: "Usuário deletado com sucesso!" });
+    } catch (error) {
+        console.error("Erro ao deletar usuário:", error);
+        res.status(404).json({ message: "Usuário não encontrado." });
+    }
+});
 
-app.listen(3000);
-
-/*  
-    Criar nossa API de usuários
-    - Criar um usuario
-    - Listar todos os usuarios
-    - Editar um usuario
-    - Deletar um usuario
-*/ 
+app.listen(3000, () => {
+    console.log("Servidor rodando na porta 3000");
+});
