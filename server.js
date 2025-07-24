@@ -55,8 +55,8 @@ app.get("/usuarios", async (req, res) => {
 
 app.put("/usuarios/:id", async (req, res) => {
     // Validação para garantir que o corpo da requisição não está vazio
-    if (!req.body) {
-        return res.status(400).json({ message: "Corpo da requisição ausente." });
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Corpo da requisição ausente ou vazio." });
     }
 
     try {
@@ -65,13 +65,15 @@ app.put("/usuarios/:id", async (req, res) => {
             data: {
                 name: req.body.name,
                 email: req.body.email,
-                dataNascimento: new Date(req.body.dataNascimento),
+                dataNascimento: req.body.dataNascimento ? new Date(req.body.dataNascimento) : undefined,
                 telefone: req.body.telefone,
             }
         });
         res.status(200).json(user);
     } catch (error) {
-        res.status(404).json({ message: "Usuário não encontrado." });
+        // Erro pode ser "usuário não encontrado" ou dados inválidos
+        console.error("Erro ao atualizar usuário:", error);
+        res.status(404).json({ message: "Não foi possível atualizar o usuário." });
     }
 });
 
