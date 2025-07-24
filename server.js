@@ -54,19 +54,26 @@ app.get("/usuarios", async (req, res) => {
 }) //app.post("/usuarios",) app.put("/usuarios",) app.delete("/usuarios",)
 
 app.put("/usuarios/:id", async (req, res) => {
-    const user = await prisma.user.update({
-        where: {
-            id: req.params.id,
-        },
-        data: {
-            name: req.body.name,
-            email: req.body.email,
-            dataNascimento: new Date(req.body.dataNascimento),
-            telefone: req.body.telefone,
-        }
-    })
-    res.status(200).json(user)
-})
+    // Validação para garantir que o corpo da requisição não está vazio
+    if (!req.body) {
+        return res.status(400).json({ message: "Corpo da requisição ausente." });
+    }
+
+    try {
+        const user = await prisma.user.update({
+            where: { id: req.params.id },
+            data: {
+                name: req.body.name,
+                email: req.body.email,
+                dataNascimento: new Date(req.body.dataNascimento),
+                telefone: req.body.telefone,
+            }
+        });
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(404).json({ message: "Usuário não encontrado." });
+    }
+});
 
 app.delete("/usuarios/:id", async (req, res) => {
     await prisma.user.delete({
@@ -76,10 +83,6 @@ app.delete("/usuarios/:id", async (req, res) => {
     })
     res.status(200).json({ message: "Usuário deletado com sucesso!" });
 })
-
-
-
-
 
 app.listen(3000);
 
